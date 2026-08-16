@@ -6,6 +6,7 @@ import html
 import os
 import re
 import threading
+import time
 import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -29,6 +30,51 @@ def read_log_tail(max_lines=220):
     return "\n".join(redact_log_line(line) for line in lines[-max_lines:])
 
 
+def read_signal_tail(max_lines=80):
+    if not LOG_FILE.exists():
+        return "events.log 暂无内容。服务刚启动时请稍等几秒。"
+
+    keywords = (
+        "正在连接闲鱼",
+        "获取 token",
+        "/reg",
+        "REG-REPLY",
+        "ackDiff",
+        "syncPushPackage.data_count",
+        "收到闲鱼消息",
+        "订单状态=",
+        "DRY-RUN",
+        "发货消息",
+        "自动发货成功",
+        "连接失败",
+        "handler异常",
+        "闲鱼监听启动失败",
+    )
+    signals = []
+    last_heartbeat = ""
+    for line in LOG_FILE.read_text(encoding="utf-8", errors="replace").splitlines():
+        clean = redact_log_line(line)
+        if "heartbeat /!" in clean:
+            last_heartbeat = clean
+            continue
+        if any(k in clean for k in keywords):
+            signals.append(clean)
+
+    if last_heartbeat:
+        signals.append(last_heartbeat)
+    if not signals:
+        return "暂时没有关键事件。请刷新首页唤醒服务后，再用另一个闲鱼账号发送：云端测试123"
+    return "\n".join(signals[-max_lines:])
+
+
+def log_file_info():
+    now = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    if not LOG_FILE.exists():
+        return f"当前服务时间 {now} · events.log 暂无内容"
+    modified = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(LOG_FILE.stat().st_mtime))
+    return f"当前服务时间 {now} · events.log updated {modified}"
+
+
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
@@ -36,7 +82,15 @@ class Handler(BaseHTTPRequestHandler):
             return self.handle_logs(parsed)
         if parsed.path == "/healthz":
             return self.send_text("ok\n")
-        return self.send_text("闲鱼自动发货运行中\n")
+        return self.handle_home()
+
+    def handle_home(self):
+        body = render_page(
+            title="闲鱼自动发货运行中",
+            subtitle="最近关键事件每 5 秒自动刷新。请用另一个闲鱼账号发：云端测试123",
+            text=read_signal_tail(),
+        )
+        return self.send_html(body)
 
     def handle_logs(self, parsed):
         token = os.environ.get("LOG_VIEW_TOKEN", "")
@@ -50,27 +104,11 @@ class Handler(BaseHTTPRequestHandler):
         if supplied != token:
             return self.send_text("Forbidden\n", status=403)
 
-        log_tail = html.escape(read_log_tail())
-        body = f"""<!doctype html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="refresh" content="5">
-  <title>闲鱼自动发货日志</title>
-  <style>
-    body {{ margin: 0; background: #111; color: #eee; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }}
-    header {{ position: sticky; top: 0; padding: 12px 16px; background: #1b1b1b; border-bottom: 1px solid #333; }}
-    main {{ padding: 16px; }}
-    pre {{ white-space: pre-wrap; word-break: break-word; line-height: 1.45; font-size: 13px; }}
-  </style>
-</head>
-<body>
-  <header>闲鱼自动发货运行中 · 日志每 5 秒自动刷新 · URL/提取码已隐藏</header>
-  <main><pre>{log_tail}</pre></main>
-</body>
-</html>
-"""
+        body = render_page(
+            title="闲鱼自动发货完整日志",
+            subtitle="完整尾部日志每 5 秒自动刷新，URL/提取码已隐藏。",
+            text=read_log_tail(),
+        )
         return self.send_html(body)
 
     def send_text(self, text, status=200):
@@ -93,6 +131,36 @@ class Handler(BaseHTTPRequestHandler):
 
     def log_message(self, fmt, *args):
         return
+
+
+def render_page(title, subtitle, text):
+    escaped = html.escape(text)
+    info = html.escape(log_file_info())
+    return f"""<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="refresh" content="5">
+  <title>闲鱼自动发货日志</title>
+  <style>
+    body {{ margin: 0; background: #111; color: #eee; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }}
+    header {{ position: sticky; top: 0; padding: 12px 16px; background: #1b1b1b; border-bottom: 1px solid #333; }}
+    h1 {{ margin: 0 0 6px; font-size: 18px; }}
+    p {{ margin: 0; color: #bdbdbd; font-size: 13px; }}
+    main {{ padding: 16px; }}
+    pre {{ white-space: pre-wrap; word-break: break-word; line-height: 1.45; font-size: 13px; }}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>{html.escape(title)}</h1>
+    <p>{html.escape(subtitle)} · {info}</p>
+  </header>
+  <main><pre>{escaped}</pre></main>
+</body>
+</html>
+"""
 
 
 def run_delivery():
