@@ -1,2 +1,8 @@
-flask
-gunicorn
+blackboxprotobuf==1.0.1
+certifi==2026.7.22
+loguru==0.7.3
+protobuf==3.10.0
+PyExecJS==1.5.1
+requests==2.34.2
+six==1.17.0
+websockets==12.0
