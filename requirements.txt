@@ -6,4 +6,5 @@ protobuf==3.10.0
 PyExecJS==1.5.1
 requests==2.34.2
 six==1.17.0
+typing_extensions==4.16.0
 websockets==12.0
