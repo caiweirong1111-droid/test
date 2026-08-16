@@ -4,7 +4,7 @@
 
 ## Render 设置
 
-服务类型使用 Background Worker。
+服务类型使用 Web Service。Render 免费套餐没有 Background Worker，所以这里用一个极简网页入口包住后台闲鱼监听。
 
 Build Command:
 
@@ -15,8 +15,16 @@ pip install --upgrade pip && pip install -r requirements.txt
 Start Command:
 
 ```bash
-python mini_delivery.py
+python app.py
 ```
+
+首页会返回：
+
+```text
+闲鱼自动发货运行中
+```
+
+后台线程会启动 `mini_delivery.py` 中已有的 WebSocket 监听、付款识别、`item_id` 匹配和自动发货逻辑。
 
 环境变量：
 
@@ -28,6 +36,8 @@ PYTHONUNBUFFERED=1
 ## 安全默认值
 
 仓库里的 `config.json` 默认保留 `dry_run=true`，防止云端首次启动就真实发送。确认 Render 日志里店铺A能完成 `/reg`、`ackDiff`、心跳和订单推送后，再把店铺A的 `dry_run` 改为 `false` 并提交部署。
+
+注意：免费 Web Service 空闲后可能休眠，休眠期间后台监听也会停止。这个方案适合 0 成本验证部署链路和协议启动，不适合作为长期无人值守自动发货。
 
 `cookies/`、`.venv/`、`events.log`、`delivery.db` 和备份文件都已加入 `.gitignore`，不要把这些运行态或敏感文件提交到仓库。
 
