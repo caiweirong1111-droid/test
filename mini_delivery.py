@@ -103,7 +103,42 @@ def load_config():
                     cookie = p.read_text(encoding="utf-8")
 
         a["cookie"] = cookie.replace("\r", "").replace("\n", "").strip()
+        a["_cookie_env_name"] = cookie_env
     return cfg
+
+
+def cookie_key_summary(cookie: str):
+    keys = []
+    for part in str(cookie or "").split(";"):
+        if "=" not in part:
+            continue
+        key = part.split("=", 1)[0].strip()
+        if key:
+            keys.append(key)
+    required = ["_m_h5_tk", "_m_h5_tk_enc", "cookie2", "unb", "sgcookie", "cna"]
+    missing = [k for k in required if k not in keys]
+    return {
+        "length": len(cookie or ""),
+        "key_count": len(keys),
+        "sample_keys": keys[:12],
+        "missing_common_keys": missing,
+    }
+
+
+def safe_response_summary(obj):
+    if isinstance(obj, dict):
+        out = {
+            "keys": list(obj.keys())[:12],
+        }
+        if "ret" in obj:
+            out["ret"] = obj.get("ret")
+        if "code" in obj:
+            out["code"] = obj.get("code")
+        data = obj.get("data")
+        if isinstance(data, dict):
+            out["data_keys"] = list(data.keys())[:12]
+        return out
+    return {"type": type(obj).__name__}
 
 
 def init_db():
@@ -1053,6 +1088,12 @@ class Live(XianyuLive):
         data = self.xianyu.get_token()
         token = data.get("data", {}).get("accessToken", "") if isinstance(data, dict) else ""
         if not token:
+            log(
+                f"[{self.name}] ⚠️ 获取 token 失败；"
+                f"cookie_env={self.cfg.get('_cookie_env_name') or '-'} "
+                f"cookie_diag={cookie_key_summary(self.cfg.get('cookie', ''))} "
+                f"token_resp={safe_response_summary(data)}"
+            )
             raise RuntimeError("获取 token 失败")
 
         self._reg_mid = generate_mid()
