@@ -1,0 +1,12 @@
+services:
+  - type: worker
+    name: xianyu-mini-delivery
+    runtime: python
+    plan: starter
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: python mini_delivery.py
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: XIANYU_COOKIE_SHOP_A
+        sync: false
