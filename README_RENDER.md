@@ -34,7 +34,22 @@ python app.py
 XIANYU_COOKIE_SHOP_A=你的店铺A完整Cookie
 PYTHONUNBUFFERED=1
 PYTHON_VERSION=3.11.11
+LOG_VIEW_TOKEN=一个你自己设置的查看日志口令
 ```
+
+部署成功后，首页用于健康检查：
+
+```text
+https://你的服务地址/
+```
+
+查看最近日志：
+
+```text
+https://你的服务地址/logs?token=你的LOG_VIEW_TOKEN
+```
+
+日志页每 5 秒自动刷新，并会隐藏 URL 和提取码。注意这个页面仍然会显示聊天/订单诊断文本，不要把 token 给别人。
 
 ## 安全默认值
 

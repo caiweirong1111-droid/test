@@ -12,3 +12,5 @@ services:
         value: "1"
       - key: XIANYU_COOKIE_SHOP_A
         sync: false
+      - key: LOG_VIEW_TOKEN
+        sync: false
