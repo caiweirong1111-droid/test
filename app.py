@@ -4,9 +4,8 @@
 import asyncio
 import os
 import threading
+import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-
-import mini_delivery
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -23,7 +22,13 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def run_delivery():
-    asyncio.run(mini_delivery.main())
+    try:
+        import mini_delivery
+
+        asyncio.run(mini_delivery.main())
+    except Exception:
+        print("闲鱼监听启动失败：", flush=True)
+        print(traceback.format_exc(), flush=True)
 
 
 def main():
@@ -31,7 +36,7 @@ def main():
     port = int(os.environ.get("PORT", "10000"))
     server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
     print(f"Web Service 已启动：http://0.0.0.0:{port}", flush=True)
-    print("闲鱼监听已在后台启动", flush=True)
+    print("闲鱼监听后台线程已启动", flush=True)
     server.serve_forever()
 
 

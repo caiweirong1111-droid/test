@@ -3,9 +3,11 @@ services:
     name: xianyu-mini-delivery
     runtime: python
     plan: free
-    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    buildCommand: pip install --upgrade pip && pip install nodeenv==1.9.1 && python -m nodeenv -p --node=24.14.1 && pip install -r requirements.txt
     startCommand: python app.py
     envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.11"
       - key: PYTHONUNBUFFERED
         value: "1"
       - key: XIANYU_COOKIE_SHOP_A

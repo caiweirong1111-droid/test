@@ -9,7 +9,7 @@
 Build Command:
 
 ```bash
-pip install --upgrade pip && pip install -r requirements.txt
+pip install --upgrade pip && pip install nodeenv==1.9.1 && python -m nodeenv -p --node=24.14.1 && pip install -r requirements.txt
 ```
 
 Start Command:
@@ -26,11 +26,14 @@ python app.py
 
 后台线程会启动 `mini_delivery.py` 中已有的 WebSocket 监听、付款识别、`item_id` 匹配和自动发货逻辑。
 
+项目通过 `.python-version` 和 `PYTHON_VERSION=3.11.11` 固定 Python 版本，避免 Render 默认 Python 版本变化导致依赖兼容问题。构建时会用 `nodeenv` 在 Python 虚拟环境里安装 Node.js，供 PyExecJS 解码逻辑使用。
+
 环境变量：
 
 ```bash
 XIANYU_COOKIE_SHOP_A=你的店铺A完整Cookie
 PYTHONUNBUFFERED=1
+PYTHON_VERSION=3.11.11
 ```
 
 ## 安全默认值
